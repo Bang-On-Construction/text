@@ -36,7 +36,13 @@
   // Link format (built by scripts/leads/lead-common.ps1 in Bang-On-Construction/bang-on):
   //   https://bang-on-construction.github.io/text/#<10-digit phone>/<rep>/<lead first name>
   // Everything after "#" stays on the phone: browsers never send it to the server.
-  (function () {
+  function run() {
+    if (!location.hash) return;
+    var title = document.getElementById('title');
+    title.textContent = 'Opening Messages…';
+    title.className = '';
+    document.getElementById('sub').textContent = "If Messages didn't open, tap the button.";
+    document.getElementById('btn').style.display = '';
     var parts = location.hash.replace(/^#/, '').split('/').map(function (p) {
       try { return decodeURIComponent(p); } catch (e) { return p; }
     });
@@ -67,7 +73,14 @@
     try { history.replaceState(null, '', location.pathname); } catch (e) {}
 
     location.href = uri;
-  })();
+  }
+  // A second link opened in the same tab only changes the "#" part, which doesn't reload the page.
+  window.addEventListener('hashchange', run);
+  if (location.hash) { run(); } else {
+    document.getElementById('title').textContent = 'Open this from a lead alert in Slack';
+    document.getElementById('sub').textContent = 'The "Text" link in each #sales-leads alert brings you here with the lead filled in.';
+    document.getElementById('btn').style.display = 'none';
+  }
 </script>
 </body>
 </html>
