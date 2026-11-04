@@ -36,6 +36,35 @@
   // Link format (built by scripts/leads/lead-common.ps1 in Bang-On-Construction/bang-on):
   //   https://bang-on-construction.github.io/text/#<10-digit phone>/<rep>/<lead first name>
   // Everything after "#" stays on the phone: browsers never send it to the server.
+  // TIMES_URL: Apps Script web app (bang-on repo scripts/leads/text-times) that returns the rep's next two openings.
+  // It is sent only the rep's name. Empty, slow or failing -> the message without times.
+  var TIMES_URL = '';
+  var runId = 0;
+
+  function getTimes(rep) {
+    if (!TIMES_URL || !window.fetch) return Promise.resolve([]);
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 4000);
+    return fetch(TIMES_URL + '?rep=' + encodeURIComponent(rep), ctrl ? { signal: ctrl.signal } : {})
+      .then(function (r) { return r.json(); })
+      .then(function (j) { return (j && j.times) || []; })
+      .catch(function () { return []; })
+      .then(function (t) { clearTimeout(timer); return t; });
+  }
+
+  function message(first, rep, times) {
+    var hi = 'Hi ' + first + ", it's " + rep + ' from Bang On Construction. Thanks for reaching out! ';
+    if (times.length >= 2) {
+      return hi + 'Would ' + times[0] + ' or ' + times[1] + ' work for a quick 15-minute call about your project? ' +
+        "If neither works, just let me know a time that suits you.";
+    }
+    if (times.length === 1) {
+      return hi + 'Would ' + times[0] + ' work for a quick 15-minute call about your project? ' +
+        "If not, just let me know a time that suits you.";
+    }
+    return hi + 'Do you have 15 minutes today or tomorrow for a quick call about your project? What time works best for you?';
+  }
+
   function run() {
     if (!location.hash) return;
     var title = document.getElementById('title');
@@ -58,21 +87,30 @@
       return;
     }
 
-    var body = 'Hi ' + first + ", it's " + rep + ' from Bang On Construction. Thanks for reaching out! ' +
-      'Do you have 15 minutes today or tomorrow for a quick call about your project? What time works best for you?';
-    // "?&body=" is the form both Android Messages and iPhone Messages accept.
-    var uri = 'sms:+1' + phone + '?&body=' + encodeURIComponent(body);
-
-    var btn = document.getElementById('btn');
-    btn.href = uri;
-    btn.textContent = 'Text ' + first;
-    document.getElementById('msg').textContent = body;
-    document.title = 'Text ' + first + ' - Bang On';
-
     // Keep the number out of the browser history.
     try { history.replaceState(null, '', location.pathname); } catch (e) {}
 
-    location.href = uri;
+    var btn = document.getElementById('btn');
+    btn.textContent = 'Text ' + first;
+    document.title = 'Text ' + first + ' - Bang On';
+    function show(times) {
+      var body = message(first, rep, times);
+      // "?&body=" is the form both Android Messages and iPhone Messages accept.
+      var uri = 'sms:+1' + phone + '?&body=' + encodeURIComponent(body);
+      btn.href = uri;
+      document.getElementById('msg').textContent = body;
+      return uri;
+    }
+    show([]);  // the button works right away, even before the times arrive
+
+    var id = ++runId;
+    if (TIMES_URL) title.textContent = 'Checking ' + rep + "'s calendar…";
+    getTimes(rep).then(function (times) {
+      if (id !== runId) return;  // a newer link took over
+      var uri = show(times);
+      title.textContent = 'Opening Messages…';
+      location.href = uri;
+    });
   }
   // A second link opened in the same tab only changes the "#" part, which doesn't reload the page.
   window.addEventListener('hashchange', run);
