@@ -38,13 +38,14 @@
   // Everything after "#" stays on the phone: browsers never send it to the server.
   // TIMES_URL: Apps Script web app (bang-on repo scripts/leads/text-times) that returns the rep's next two openings.
   // It is sent only the rep's name. Empty, slow or failing -> the message without times.
-  var TIMES_URL = '';
+  // Apps Script project "Bang On - Text Call Times" (info@), deployment "v1" 2026-11-04. Usually answers in 2-3 s.
+  var TIMES_URL = 'https://script.google.com/macros/s/AKfycbxFGf0UanF9m6yNQFhXR-zLiqMcpupCfDcCo2yGpgXlcT-URbT_6JCb6FSL3DJD_uUc/exec';
   var runId = 0;
 
   function getTimes(rep) {
     if (!TIMES_URL || !window.fetch) return Promise.resolve([]);
     var ctrl = window.AbortController ? new AbortController() : null;
-    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 4000);
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 6000);
     return fetch(TIMES_URL + '?rep=' + encodeURIComponent(rep), ctrl ? { signal: ctrl.signal } : {})
       .then(function (r) { return r.json(); })
       .then(function (j) { return (j && j.times) || []; })
