@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Text a lead - Bang On</title>
+<style>
+  :root { --bg: #f6f5f2; --card: #fff; --ink: #1d1d1b; --muted: #6b6b66; --accent: #d4372c; --line: #e3e1db; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161615; --card: #22221f; --ink: #f2f1ec; --muted: #a3a29b; --line: #3a3934; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 440px; margin: 0 auto; padding: 32px 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .muted { color: var(--muted); font-size: 15px; margin: 0 0 16px; }
+  a.btn { display: block; text-align: center; background: var(--accent); color: #fff; text-decoration: none;
+          font-weight: 600; font-size: 19px; padding: 16px; border-radius: 12px; }
+  .msg { white-space: pre-wrap; border-left: 3px solid var(--line); padding: 2px 0 2px 12px; margin: 18px 0 0; color: var(--muted); font-size: 15px; }
+  .err { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <div class="card" id="card">
+    <h1 id="title">Opening Messages&hellip;</h1>
+    <p class="muted" id="sub">If Messages didn't open, tap the button.</p>
+    <a class="btn" id="btn" href="#">Text</a>
+    <p class="msg" id="msg"></p>
+  </div>
+</main>
+<script>
+  // Link format (built by scripts/leads/lead-common.ps1 in Bang-On-Construction/bang-on):
+  //   https://bang-on-construction.github.io/text/#<10-digit phone>/<rep>/<lead first name>
+  // Everything after "#" stays on the phone: browsers never send it to the server.
+  (function () {
+    var parts = location.hash.replace(/^#/, '').split('/').map(function (p) {
+      try { return decodeURIComponent(p); } catch (e) { return p; }
+    });
+    var phone = (parts[0] || '').replace(/\D/g, '').replace(/^1(\d{10})$/, '$1');
+    var rep = (parts[1] || '').trim() || 'Jason';
+    var first = (parts[2] || '').trim() || 'there';
+
+    if (phone.length !== 10) {
+      document.getElementById('title').textContent = 'This link is missing the phone number';
+      document.getElementById('title').className = 'err';
+      document.getElementById('sub').textContent = 'Use the number in the Slack alert instead.';
+      document.getElementById('btn').style.display = 'none';
+      return;
+    }
+
+    var body = 'Hi ' + first + ", it's " + rep + ' from Bang On Construction. Thanks for reaching out! ' +
+      'Do you have 15 minutes today or tomorrow for a quick call about your project? What time works best for you?';
+    // "?&body=" is the form both Android Messages and iPhone Messages accept.
+    var uri = 'sms:+1' + phone + '?&body=' + encodeURIComponent(body);
+
+    var btn = document.getElementById('btn');
+    btn.href = uri;
+    btn.textContent = 'Text ' + first;
+    document.getElementById('msg').textContent = body;
+    document.title = 'Text ' + first + ' - Bang On';
+
+    // Keep the number out of the browser history.
+    try { history.replaceState(null, '', location.pathname); } catch (e) {}
+
+    location.href = uri;
+  })();
+</script>
+</body>
+</html>
